@@ -1,5 +1,6 @@
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="container-fluid">
 
@@ -111,7 +112,7 @@
 
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-white border-bottom-0">
 
-                    <h6 class="m-0 font-weight-bold text-ugm">Permohonan Terbaru</h6>
+                    <h6 class="m-0 font-weight-bold text-ugm">Cuti Bulan Ini</h6>
 
                     <a href="<?= base_url('cuti/approval'); ?>" class="small font-weight-bold text-ugm">Lihat Semua &rarr;</a>
 
@@ -119,11 +120,11 @@
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
 
-                        <?php if (empty($permohonan_terbaru)) : ?>
-                            <div class="text-center p-4 text-muted">Belum ada data permohonan.</div>
+                        <?php if (empty($cuti_bulan_ini)) : ?>
+                            <div class="text-center p-4 text-muted">Belum ada data permohonan bulan ini.</div>
                         <?php else : ?>
 
-                            <?php foreach ($permohonan_terbaru as $row) : ?>
+                            <?php foreach ($cuti_bulan_ini as $row) : ?>
 
                                 <?php
                                 // 1. Tentukan Warna berdasarkan Status
@@ -186,6 +187,24 @@
 
                         <?php endif; ?>
 
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ROW GRAFIK -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card card-dashboard shadow mb-4">
+                <div class="card-header py-3 bg-white border-bottom-0">
+                    <h6 class="m-0 font-weight-bold text-ugm">
+                        <i class="fas fa-chart-bar mr-2"></i>Distribusi Cuti per Atasan Bidang (Disetujui)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height: 350px; width: 100%;">
+                        <canvas id="chartAtasan"></canvas>
                     </div>
                 </div>
             </div>
@@ -390,5 +409,73 @@
         });
 
         calendar.render();
+
+        // ==========================================
+        // CHART.JS: DISTRIBUSI CUTI PER ATASAN BIDANG
+        // ==========================================
+        var chartLabels = <?= $chart_labels; ?>;
+        var chartData = <?= $chart_data; ?>;
+
+        var ctx = document.getElementById('chartAtasan').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Jumlah Pengajuan Cuti Disetujui',
+                    data: chartData,
+                    backgroundColor: 'rgba(0, 51, 102, 0.85)',
+                    borderColor: '#003366',
+                    borderWidth: 1.5,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    hoverBackgroundColor: 'rgba(0, 51, 102, 1)',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.raw + ' Kasus Cuti Disetujui';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#5a5c69',
+                            font: {
+                                family: 'Nunito',
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#eaecf4',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            stepSize: 1,
+                            color: '#5a5c69',
+                            font: {
+                                family: 'Nunito'
+                            }
+                        }
+                    }
+                }
+            }
+        });
     });
 </script>

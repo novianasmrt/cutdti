@@ -179,7 +179,8 @@
                                             <!-- DETAIL -->
                                             <a href="<?= base_url('admin/detailstaff/' . $id_user); ?>"
                                                 class="btn btn-sm"
-                                                style="background:#E6F0FF;color:#003366;">
+                                                style="background:#E6F0FF;color:#003366;"
+                                                title="Detail Staff">
                                                 <i class="fas fa-eye"></i>
                                             </a>
 

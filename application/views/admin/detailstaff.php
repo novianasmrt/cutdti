@@ -70,15 +70,35 @@
                     </div>
 
                     <div class="row mb-4">
-                        <div class="col-sm-4">No HP</div>
-                        <div class="col-sm-8"><?= $staff->no_hp ?? '-'; ?></div>
+                        <div class="col-sm-4">Nomor Telepon</div>
+                        <div class="col-sm-8"><?= $staff->no_telpon ?? '-'; ?></div>
                     </div>
 
-                    <h6 class="font-weight-bold text-uppercase mb-4 mt-5">Data Administrasi</h6>
+                    <h6 class="font-weight-bold text-uppercase mb-4 mt-5">Data Administrasi & Kepegawaian</h6>
 
                     <div class="row mb-3 border-bottom pb-2">
-                        <div class="col-sm-4">NIP</div>
+                        <div class="col-sm-4">NIP / NIU</div>
                         <div class="col-sm-8"><?= $staff->nip ?? '-'; ?></div>
+                    </div>
+
+                    <div class="row mb-3 border-bottom pb-2">
+                        <div class="col-sm-4">Jenis Pegawai</div>
+                        <div class="col-sm-8"><?= $staff->jenis_pegawai ?? '-'; ?></div>
+                    </div>
+
+                    <div class="row mb-3 border-bottom pb-2">
+                        <div class="col-sm-4">Kategori</div>
+                        <div class="col-sm-8"><?= $staff->kategori ?? '-'; ?></div>
+                    </div>
+
+                    <div class="row mb-3 border-bottom pb-2">
+                        <div class="col-sm-4">Tipe Pegawai</div>
+                        <div class="col-sm-8"><?= $staff->tipe_pegawai ?? '-'; ?></div>
+                    </div>
+
+                    <div class="row mb-3 border-bottom pb-2">
+                        <div class="col-sm-4">Unit Kerja</div>
+                        <div class="col-sm-8"><?= $staff->unit_kerja ?? '-'; ?></div>
                     </div>
 
                     <div class="row mb-3 border-bottom pb-2">
@@ -87,7 +107,17 @@
                     </div>
 
                     <div class="row mb-3 border-bottom pb-2">
-                        <div class="col-sm-4">Sisa Cuti</div>
+                        <div class="col-sm-4">Pangkat / Golongan</div>
+                        <div class="col-sm-8"><?= $staff->pangkat ?? '-'; ?></div>
+                    </div>
+
+                    <div class="row mb-3 border-bottom pb-2">
+                        <div class="col-sm-4">Atasan Bidang</div>
+                        <div class="col-sm-8"><?= $staff->atasan_bidang ?? '-'; ?></div>
+                    </div>
+
+                    <div class="row mb-3 border-bottom pb-2">
+                        <div class="col-sm-4">Sisa Cuti Tahunan</div>
                         <div class="col-sm-8"><?= $staff->sisa_cuti ?? '0'; ?> Hari</div>
                     </div>
 
@@ -98,11 +128,22 @@
 
                     <hr class="my-4">
 
-                    <a href="<?= base_url('admin/datastaff'); ?>"
-                        class="btn btn-block py-2 font-weight-bold shadow-sm"
-                        style="background-color: #e2e6ea; color: #4b5563; border-radius: 8px;">
-                        <i class="fas fa-arrow-left mr-2"></i> Kembali
-                    </a>
+                    <div class="row">
+                        <div class="col-sm-6 mb-2">
+                            <a href="<?= base_url('admin/datastaff'); ?>"
+                                class="btn btn-block py-2 font-weight-bold shadow-sm"
+                                style="background-color: #e2e6ea; color: #4b5563; border-radius: 8px;">
+                                <i class="fas fa-arrow-left mr-2"></i> Kembali
+                            </a>
+                        </div>
+                        <div class="col-sm-6 mb-2">
+                            <a href="<?= base_url('admin/editstaff/' . $staff->id_user); ?>"
+                                class="btn btn-block py-2 font-weight-bold shadow-sm text-white"
+                                style="background-color: #003366; border-radius: 8px;">
+                                <i class="fas fa-user-edit mr-2"></i> Edit Profil
+                            </a>
+                        </div>
+                    </div>
 
                 </div>
             </div>

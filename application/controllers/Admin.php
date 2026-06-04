@@ -95,15 +95,24 @@ class Admin extends CI_Controller
         ];
 
         // ==============================
-        // 5. PERMOHONAN TERBARU
+        // 5. CUTI BULAN INI
         // ==============================
-        usort($all_cuti, function ($a, $b) {
+        $cuti_bulan_ini = [];
+        foreach ($all_cuti as $c) {
+            if (!empty($c->tgl_pengajuan)) {
+                if (date('Y-m', strtotime($c->tgl_pengajuan)) == $bulan) {
+                    $cuti_bulan_ini[] = $c;
+                }
+            }
+        }
+
+        usort($cuti_bulan_ini, function ($a, $b) {
             $a_date = !empty($a->tgl_pengajuan) ? strtotime($a->tgl_pengajuan) : 0;
             $b_date = !empty($b->tgl_pengajuan) ? strtotime($b->tgl_pengajuan) : 0;
             return $b_date - $a_date;
         });
 
-        $data['permohonan_terbaru'] = array_slice($all_cuti, 0, 5);
+        $data['cuti_bulan_ini'] = $cuti_bulan_ini;
 
         // ==============================
         // 6. KALENDER EVENTS
@@ -156,6 +165,44 @@ class Admin extends CI_Controller
         }
 
         $data['json_events'] = json_encode($events);
+
+        // ==============================
+        // 6B. GRAFIK DISTRIBUSI CUTI PER ATASAN BIDANG
+        // ==============================
+        // 1. Ambil semua admin yang dapat dipilih sebagai atasan bidang
+        $all_admins = $this->User_model->get_admins();
+        
+        // 2. Inisialisasi map nama atasan -> 0
+        $atasan_map = [];
+        foreach ($all_admins as $admin) {
+            $atasan_map[$admin->name] = 0;
+        }
+
+        // 3. Ambil data cuti disetujui dari database
+        $chart_query = $this->db->select('atasan_bidang, COUNT(id_cuti) as total_cuti')
+            ->from('cuti')
+            ->where('status', 'Disetujui')
+            ->where('atasan_bidang IS NOT NULL')
+            ->where('atasan_bidang !=', '')
+            ->group_by('atasan_bidang')
+            ->get()
+            ->result();
+
+        // 4. Update nilai dari database ke map
+        foreach ($chart_query as $row) {
+            $atasan_map[$row->atasan_bidang] = (int) $row->total_cuti;
+        }
+
+        // 5. Susun ke array label dan data
+        $chart_labels = [];
+        $chart_data = [];
+        foreach ($atasan_map as $nama_atasan => $total_cuti) {
+            $chart_labels[] = $nama_atasan;
+            $chart_data[] = $total_cuti;
+        }
+
+        $data['chart_labels'] = json_encode($chart_labels);
+        $data['chart_data'] = json_encode($chart_data);
 
         // ==============================
         // 7. LOAD VIEW
@@ -213,29 +260,144 @@ class Admin extends CI_Controller
         $data['user'] = $this->User_model->get_user_by_email($email);
 
         // 🔥 AMBIL DATA STAFF DARI DATABASE (BUKAN DUMMY)
-        $data['user_detail'] = $this->db
-            ->select('user.*, user_role.role')
-            ->from('user')
-            ->join('user_role', 'user_role.id_role = user.role_id', 'left')
-            ->where('user.id_user', $id)
-            ->get()
-            ->row(); // ✅ OBJECT
+        $data['staff'] = $this->User_model->get_user_by_id($id);
 
         // ❗ CEK DATA ADA ATAU TIDAK
-        if (!$data['user_detail']) {
+        if (!$data['staff']) {
             $this->session->set_flashdata('error', 'Data tidak ditemukan');
             redirect('admin/datastaff');
         }
 
-        $data['user_detail'] = $this->User_model->get_user_by_id($id);
-        echo "<pre>";
-        print_r($data['user_detail']);
-        die;
         $this->load->view('templates/header', $data);
         $this->load->view('templates/sidebar', $data);
         $this->load->view('templates/topbar', $data);
         $this->load->view('admin/detailstaff', $data);
         $this->load->view('templates/footer');
+    }
+
+    // ===============================================================
+    // EDIT STAFF (FORM)
+    // ===============================================================
+    public function editstaff($id)
+    {
+        $data['title'] = 'Edit Staff';
+        $data['subtitle'] = 'Data Staff';
+
+        // USER LOGIN
+        $email = $this->session->userdata('email');
+        $data['user'] = $this->User_model->get_user_by_email($email);
+
+        // AMBIL DATA STAFF DARI DATABASE
+        $data['staff'] = $this->User_model->get_user_by_id($id);
+
+        // CEK DATA ADA ATAU TIDAK
+        if (!$data['staff']) {
+            $this->session->set_flashdata('error', 'Data tidak ditemukan');
+            redirect('admin/datastaff');
+        }
+
+        // AMBIL DAFTAR ADMIN UNTUK PILIHAN ATASAN BIDANG
+        $data['admins'] = $this->User_model->get_admins();
+
+        $this->load->view('templates/header', $data);
+        $this->load->view('templates/sidebar', $data);
+        $this->load->view('templates/topbar', $data);
+        $this->load->view('admin/editstaff', $data);
+        $this->load->view('templates/footer');
+    }
+
+    // ===============================================================
+    // PROSES UPDATE STAFF
+    // ===============================================================
+    public function update_staff()
+    {
+        $id_user = $this->input->post('id_user');
+        $current_user = $this->User_model->get_user_by_id($id_user);
+
+        if (!$current_user) {
+            $this->session->set_flashdata('message', '<div class="alert alert-danger" role="alert">User tidak ditemukan!</div>');
+            redirect('admin/datastaff');
+        }
+
+        // Validasi Form
+        $this->form_validation->set_rules('nama', 'Nama Lengkap', 'required|trim');
+        $this->form_validation->set_rules('nip', 'NIP/NIU', 'required|numeric');
+
+        // Jika email diubah, validasi uniqueness
+        if ($this->input->post('email') != $current_user->email) {
+            $this->form_validation->set_rules('email', 'Email', 'required|trim|valid_email|is_unique[user.email]');
+        } else {
+            $this->form_validation->set_rules('email', 'Email', 'required|trim|valid_email');
+        }
+
+        if ($this->input->post('password')) {
+            $this->form_validation->set_rules('password', 'Password', 'min_length[5]');
+        }
+
+        if ($this->form_validation->run() == false) {
+            // Jika validasi gagal, tampilkan form edit lagi
+            $this->editstaff($id_user);
+        } else {
+            // Upload Foto jika ada
+            $foto = $current_user->image;
+            $upload_image = $_FILES['foto']['name'];
+
+            if ($upload_image) {
+                $config['allowed_types'] = 'gif|jpg|png|jpeg';
+                $config['max_size']      = '5048'; // 5MB
+                $config['upload_path']   = './assets/img/profile/';
+                $config['encrypt_name']  = TRUE;
+
+                $this->load->library('upload', $config);
+
+                if ($this->upload->do_upload('foto')) {
+                    $new_image = $this->upload->data('file_name');
+                    
+                    // Hapus foto lama jika bukan default.jpg
+                    if ($foto && $foto != 'default.jpg') {
+                        $old_path = FCPATH . 'assets/img/profile/' . $foto;
+                        if (file_exists($old_path) && is_file($old_path)) {
+                            unlink($old_path);
+                        }
+                    }
+                    $foto = $new_image;
+                } else {
+                    $error = $this->upload->display_errors();
+                    $this->session->set_flashdata('message', '<div class="alert alert-danger">' . $error . '</div>');
+                    redirect('admin/editstaff/' . $id_user);
+                    return;
+                }
+            }
+
+            // Siapkan data update
+            $update_data = [
+                'id_user'        => $id_user,
+                'name'           => htmlspecialchars($this->input->post('nama', true)),
+                'nip'            => htmlspecialchars($this->input->post('nip', true)),
+                'email'          => htmlspecialchars($this->input->post('email', true)),
+                'no_telpon'      => htmlspecialchars($this->input->post('no_telpon', true)),
+                'jenis_pegawai'  => htmlspecialchars($this->input->post('jenis_pegawai', true)),
+                'kategori'       => htmlspecialchars($this->input->post('kategori', true)),
+                'tipe_pegawai'   => htmlspecialchars($this->input->post('tipe_pegawai', true)),
+                'unit_kerja'     => htmlspecialchars($this->input->post('unit_kerja', true)),
+                'jabatan'        => htmlspecialchars($this->input->post('jabatan', true)),
+                'pangkat'        => htmlspecialchars($this->input->post('pangkat', true)),
+                'atasan_bidang'  => $this->input->post('atasan_bidang') ? htmlspecialchars($this->input->post('atasan_bidang', true)) : null,
+                'sisa_cuti'      => (int)$this->input->post('sisa_cuti'),
+                'role_id'        => $this->input->post('role_id'),
+                'image'          => $foto
+            ];
+
+            // Update password jika diisi
+            if ($this->input->post('password')) {
+                $update_data['password'] = password_hash($this->input->post('password'), PASSWORD_DEFAULT);
+            }
+
+            $this->User_model->update($update_data);
+
+            $this->session->set_flashdata('message', '<div class="alert alert-success" role="alert">Data staff berhasil diperbarui!</div>');
+            redirect('admin/datastaff');
+        }
     }
     // Menampilkan Halaman Tambah Staff
     // ===============================================================
